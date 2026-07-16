@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispatch — Email Drafting Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://js.puter.com/v2/"></script>
+<style>
+  :root{
+    --ink: #1E2A32;
+    --ink-light: #263540;
+    --ink-lighter: #324352;
+    --paper: #F4F0E6;
+    --paper-dim: #E9E3D3;
+    --brass: #B8935F;
+    --brass-bright: #D2AD78;
+    --text-on-ink: #E8E4D9;
+    --text-on-ink-dim: #9AA8AF;
+    --text-on-paper: #2A2620;
+    --text-on-paper-dim: #6B655A;
+    --cool: #6C93A8;
+    --warm: #C98A4B;
+    --stern: #A85B4F;
+    --gentle: #7C9A6E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text-on-ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .shell{
+    max-width:1180px;
+    margin:0 auto;
+    padding:36px 28px 60px;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:10px;
+    border-bottom:1px solid var(--ink-lighter);
+    padding-bottom:20px;
+  }
+  header .brand{
+    font-family:'Fraunces',serif;
+    font-size:28px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    color:var(--text-on-ink);
+  }
+  header .brand span{ color:var(--brass-bright); font-style:italic; }
+  header .tagline{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-on-ink-dim);
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+
+  /* --- Tabs --- */
+  .tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:26px;
+  }
+  .tab-btn{
+    background:transparent;
+    border:1px solid var(--ink-lighter);
+    color:var(--text-on-ink-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    padding:9px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:all 0.15s ease;
+  }
+  .tab-btn:hover{ color:var(--text-on-ink); }
+  .tab-btn.active{
+    background:var(--brass);
+    border-color:var(--brass);
+    color:var(--ink);
+    font-weight:600;
+  }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+
+  .layout{
+    display:grid;
+    grid-template-columns:290px 1fr;
+    gap:28px;
+  }
+  @media (max-width:840px){
+    .layout{ grid-template-columns:1fr; }
+  }
+
+  /* --- Left: tone ledger --- */
+  .ledger-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--text-on-ink-dim);
+    margin-bottom:12px;
+  }
+  .tone-list{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .tone-item{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:11px 12px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:background 0.15s ease;
+    border:1px solid transparent;
+  }
+  .tone-item:hover{ background:var(--ink-light); }
+  .tone-item.active{
+    background:var(--ink-light);
+    border-color:var(--ink-lighter);
+  }
+  .dot{
+    width:9px; height:9px;
+    border-radius:50%;
+    flex:none;
+  }
+  .tone-item .name{
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--text-on-ink);
+  }
+  .tone-item .name small{
+    display:block;
+    font-size:11.5px;
+    font-weight:400;
+    color:var(--text-on-ink-dim);
+    margin-top:1px;
+  }
+
+  /* --- Right: desk / form --- */
+  .desk{
+    background:var(--ink-light);
+    border:1px solid var(--ink-lighter);
+    border-radius:10px;
+    padding:26px;
+  }
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-on-ink-dim);
+    margin-bottom:7px;
+  }
+  .field input, .field textarea{
+    width:100%;
+    background:var(--ink);
+    border:1px solid var(--ink-lighter);
+    border-radius:6px;
+    padding:11px 13px;
+    color:var(--text-on-ink);
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    resize:vertical;
+  }
+  .field textarea{ min-height:88px; line-height:1.5; }
+  .field textarea.tall{ min-height:160px; }
+  .field input:focus, .field textarea:focus{
+    outline:none;
+    border-color:var(--brass);
+  }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:520px){ .row2{ grid-template-columns:1fr; } }
+
+  .generate-btn{
+    width:100%;
+    background:var(--brass);
+    color:var(--ink);
+    border:none;
+    border-radius:6px;
+    padding:13px 18px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+    transition:background 0.15s ease;
+    margin-top:4px;
+  }
+  .generate-btn:hover:not(:disabled){ background:var(--brass-bright); }
+  .generate-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+  .generate-btn.secondary{
+    background:transparent;
+    border:1px solid var(--brass);
+    color:var(--brass-bright);
+  }
+  .generate-btn.secondary:hover:not(:disabled){ background:var(--ink-lighter); }
+
+  .error-msg{
+    color:var(--stern);
+    font-size:13px;
+    margin-top:10px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+
+  /* --- Analysis result card --- */
+  .analysis-card{
+    background:var(--ink);
+    border:1px solid var(--ink-lighter);
+    border-radius:8px;
+    padding:20px 22px;
+    margin-top:18px;
+    opacity:0;
+    transform:translateY(6px);
+    animation:rise 0.4s ease forwards;
+  }
+  .analysis-row{ margin-bottom:14px; }
+  .analysis-row:last-child{ margin-bottom:0; }
+  .analysis-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.07em;
+    color:var(--text-on-ink-dim);
+    margin-bottom:8px;
+  }
+  .tone-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--ink-light);
+    border:1px solid var(--ink-lighter);
+    padding:6px 13px;
+    border-radius:20px;
+    font-size:14px;
+    font-weight:600;
+  }
+  .tone-badge .dot{ width:8px; height:8px; }
+  .keyword-chips{ display:flex; flex-wrap:wrap; gap:7px; }
+  .chip{
+    background:var(--ink-light);
+    border:1px solid var(--ink-lighter);
+    color:var(--brass-bright);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:5px 11px;
+    border-radius:14px;
+  }
+  .summary-text{
+    font-size:14px;
+    line-height:1.6;
+    color:var(--text-on-ink);
+  }
+  .suggestion-list{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .suggestion-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background:var(--ink-light);
+    border:1px solid var(--ink-lighter);
+    border-radius:6px;
+    padding:10px 12px;
+  }
+  .suggestion-text{
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--text-on-ink);
+  }
+  .add-suggestion-btn{
+    flex:none;
+    background:transparent;
+    border:1px solid var(--brass);
+    color:var(--brass-bright);
+    font-family:'Inter',sans-serif;
+    font-size:11.5px;
+    font-weight:600;
+    padding:5px 10px;
+    border-radius:5px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all 0.15s ease;
+  }
+  .add-suggestion-btn:hover:not(:disabled){ background:var(--ink-lighter); }
+  .add-suggestion-btn:disabled{ opacity:0.5; cursor:default; border-color:var(--ink-lighter); color:var(--text-on-ink-dim); }
+
+  /* --- Output: the letter --- */
+  .letter-wrap{
+    margin-top:26px;
+    position:relative;
+  }
+  .letter{
+    background:var(--paper);
+    color:var(--text-on-paper);
+    border-radius:4px;
+    padding:34px 36px 30px;
+    font-family:'Fraunces',serif;
+    font-size:15.5px;
+    line-height:1.75;
+    white-space:pre-wrap;
+    box-shadow:0 14px 34px rgba(0,0,0,0.35);
+    position:relative;
+    opacity:0;
+    transform:translateY(8px);
+    animation:rise 0.5s ease forwards;
+  }
+  @keyframes rise{ to{ opacity:1; transform:translateY(0); } }
+  .letter.empty{
+    font-family:'Inter',sans-serif;
+    color:var(--text-on-paper-dim);
+    font-size:14px;
+    font-style:italic;
+    box-shadow:none;
+    background:var(--paper-dim);
+    animation:none;
+    opacity:1; transform:none;
+    text-align:center;
+    padding:48px 30px;
+  }
+  .postmark{
+    position:absolute;
+    top:-16px; right:-14px;
+    width:74px; height:74px;
+    border-radius:50%;
+    border:2.5px solid var(--brass);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--ink);
+    transform:rotate(-14deg) scale(0.6);
+    opacity:0;
+    animation:stamp 0.4s ease 0.35s forwards;
+  }
+  @keyframes stamp{
+    to{ opacity:1; transform:rotate(-14deg) scale(1); }
+  }
+  .postmark span{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:8.5px;
+    color:var(--brass-bright);
+    text-align:center;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    line-height:1.3;
+  }
+  .letter-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:12px;
+  }
+  .icon-btn{
+    background:transparent;
+    border:1px solid var(--ink-lighter);
+    color:var(--text-on-ink-dim);
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    padding:7px 13px;
+    border-radius:5px;
+    cursor:pointer;
+    transition:all 0.15s ease;
+  }
+  .icon-btn:hover{ border-color:var(--brass); color:var(--brass-bright); }
+
+  .loading-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--text-on-ink-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    padding:20px 0;
+    justify-content:center;
+  }
+  .spinner{
+    width:14px; height:14px;
+    border:2px solid var(--ink-lighter);
+    border-top-color:var(--brass);
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .divider{
+    border:none;
+    border-top:1px solid var(--ink-lighter);
+    margin:24px 0;
+  }
+  .section-title{
+    font-family:'Fraunces',serif;
+    font-size:16px;
+    font-weight:600;
+    margin-bottom:14px;
+    color:var(--text-on-ink);
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div>
+      <div class="brand">Dispatch <span>— mail, drafted</span></div>
+      <div class="tagline" style="margin-top:6px;">Draft new mail, or decode and reply to what landed in your inbox.</div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="compose">Draft New Email</button>
+    <button class="tab-btn" data-tab="analyze">Analyze & Reply</button>
+  </div>
+
+  <!-- ===================== COMPOSE TAB ===================== -->
+  <div class="tab-panel active" id="tab-compose">
+    <div class="layout">
+      <div>
+        <div class="ledger-label">Choose a tone</div>
+        <ul class="tone-list" id="toneList"></ul>
+      </div>
+
+      <div>
+        <div class="desk">
+          <div class="row2">
+            <div class="field">
+              <label for="subject">Subject</label>
+              <input type="text" id="subject" placeholder="e.g. Project timeline update">
+            </div>
+            <div class="field">
+              <label for="recipient">Recipient (optional)</label>
+              <input type="text" id="recipient" placeholder="e.g. Mr. Sharma / the team">
+            </div>
+          </div>
+          <div class="field">
+            <label for="context">What should the email say? (key points, background, deadline, etc.)</label>
+            <textarea id="context" placeholder="e.g. Remind them the invoice from March is still unpaid, third reminder, payment due in 3 days."></textarea>
+          </div>
+          <div class="field">
+            <label for="sender">Your name (optional)</label>
+            <input type="text" id="sender" placeholder="e.g. Rushikesh">
+          </div>
+          <button class="generate-btn" id="generateBtn">Draft the email</button>
+          <div id="errorMsg" class="error-msg" style="display:none;"></div>
+        </div>
+
+        <div class="letter-wrap" id="letterWrap">
+          <div class="letter empty" id="letterBox">Your drafted email will appear here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ANALYZE TAB ===================== -->
+  <div class="tab-panel" id="tab-analyze">
+    <div class="desk" style="max-width:760px; margin:0 auto;">
+      <div class="section-title">Step 1 — Paste the email you received</div>
+      <div class="field">
+        <label for="incomingEmail">Received email</label>
+        <textarea id="incomingEmail" class="tall" placeholder="Paste the full email here, including greeting and sign-off if available."></textarea>
+      </div>
+      <button class="generate-btn" id="analyzeBtn">Identify tone & analyze</button>
+      <div id="analyzeError" class="error-msg" style="display:none;"></div>
+
+      <div id="analysisResult"></div>
+
+      <div id="replySection" style="display:none;">
+        <hr class="divider">
+        <div class="section-title">Step 2 — Draft your reply</div>
+        <div class="ledger-label">Reply tone</div>
+        <ul class="tone-list" id="replyToneList" style="margin-bottom:18px;"></ul>
+
+        <div class="row2">
+          <div class="field">
+            <label for="replyRecipient">Reply to (optional)</label>
+            <input type="text" id="replyRecipient" placeholder="e.g. Mr. Sharma">
+          </div>
+          <div class="field">
+            <label for="replySender">Your name (optional)</label>
+            <input type="text" id="replySender" placeholder="e.g. Rushikesh">
+          </div>
+        </div>
+        <div class="field">
+          <label for="replyNotes">Anything specific you want said in the reply? (optional)</label>
+          <textarea id="replyNotes" placeholder="e.g. Confirm the payment will be made by Friday. Apologize for the delay."></textarea>
+        </div>
+        <button class="generate-btn" id="replyBtn">Draft the reply</button>
+        <div id="replyError" class="error-msg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="letter-wrap" id="replyLetterWrap" style="max-width:760px; margin:26px auto 0;"></div>
+  </div>
+</div>
+
+<script>
+const TONES = [
+  { id:'formal', name:'Formal', desc:'Standard professional', color:'var(--cool)',
+    instruction:'Write a formal, professional email. Correct, respectful, businesslike tone. No casual language.' },
+  { id:'polite', name:'Polite Request', desc:'Asking for something', color:'var(--cool)',
+    instruction:'Write a polite request email. Warm but professional, clearly states the ask, gives a reason, thanks the reader in advance.' },
+  { id:'followup', name:'Follow-up', desc:'Checking back in', color:'var(--brass)',
+    instruction:'Write a friendly follow-up email referencing a prior conversation/email that has gone unanswered, gently asking for an update.' },
+  { id:'reminder', name:'Reminder', desc:'Nudge before deadline', color:'var(--brass)',
+    instruction:'Write a reminder email. Clear and courteous, restates the key deadline or action needed, without being pushy.' },
+  { id:'strict', name:'Strict / Firm', desc:'No-nonsense tone', color:'var(--stern)',
+    instruction:'Write a firm, direct email. Professional but with no softening language, states expectations and consequences plainly and confidently.' },
+  { id:'urgent', name:'Urgent', desc:'Needs quick action', color:'var(--stern)',
+    instruction:'Write an urgent email. Conveys time-sensitivity clearly in the opening line, states what is needed and by when, stays professional.' },
+  { id:'escalation', name:'Escalation', desc:'Raising to higher authority', color:'var(--stern)',
+    instruction:'Write an escalation email, typically to a manager or higher authority, summarizing the unresolved issue, prior attempts to resolve it, and what is now needed. Professional and factual, not emotional.' },
+  { id:'harsh', name:'Harsh', desc:'Blunt, hard-hitting', color:'var(--stern)',
+    instruction:'Write a very blunt, hard-hitting email that does not soften the message at all. It should be stern and unambiguous about dissatisfaction, while still remaining professional and workplace-appropriate — firm and cutting, not abusive, insulting, or personal.' },
+  { id:'complaint', name:'Complaint', desc:'Raising a grievance', color:'var(--stern)',
+    instruction:'Write a complaint email. Clearly states the problem, its impact, and what resolution is expected. Assertive and factual, not aggressive.' },
+  { id:'apology', name:'Apology', desc:'Owning a mistake', color:'var(--gentle)',
+    instruction:'Write an apology email. Sincere, takes clear ownership without over-explaining or making excuses, and states what will be done to fix or prevent the issue.' },
+];
+
+function toneById(id){ return TONES.find(t => t.id === id) || TONES[0]; }
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------- Compose tab tone list ---------- */
+let selectedTone = TONES[0].id;
+function buildToneList(container, getSelected, onSelect){
+  TONES.forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'tone-item' + (t.id === getSelected() ? ' active' : '');
+    li.dataset.id = t.id;
+    li.innerHTML = `<span class="dot" style="background:${t.color}"></span>
+      <span class="name">${t.name}<small>${t.desc}</small></span>`;
+    li.addEventListener('click', () => {
+      onSelect(t.id);
+      container.querySelectorAll('.tone-item').forEach(el => el.classList.remove('active'));
+      li.classList.add('active');
+    });
+    container.appendChild(li);
+  });
+}
+buildToneList(document.getElementById('toneList'), () => selectedTone, (id) => selectedTone = id);
+
+/* ---------- Reply tab tone list ---------- */
+let selectedReplyTone = TONES[0].id;
+const replyToneListEl = document.getElementById('replyToneList');
+function rebuildReplyToneList(suggestedId){
+  if(suggestedId) selectedReplyTone = suggestedId;
+  replyToneListEl.innerHTML = '';
+  buildToneList(replyToneListEl, () => selectedReplyTone, (id) => selectedReplyTone = id);
+}
+rebuildReplyToneList();
+
+/* ---------- Shared: call Claude via Puter.js (free, no API key needed) ---------- */
+async function callClaude(system, user, maxTokens){
+  const combinedPrompt = system + "\n\n" + user;
+  const response = await puter.ai.chat(combinedPrompt, { model: "claude-sonnet-4-6" });
+
+  // Puter.js response shape varies slightly by model; handle the common cases
+  let text = null;
+  if (typeof response === 'string') {
+    text = response;
+  } else if (response?.message?.content) {
+    const content = response.message.content;
+    text = Array.isArray(content) ? (content[0]?.text || '') : content;
+  } else if (response?.text) {
+    text = response.text;
+  }
+
+  if(!text) throw new Error('No response returned.');
+  return text.trim();
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ---------- Compose tab: generate ---------- */
+const generateBtn = document.getElementById('generateBtn');
+const letterWrap = document.getElementById('letterWrap');
+const errorMsg = document.getElementById('errorMsg');
+
+async function generateEmail(){
+  const subject = document.getElementById('subject').value.trim();
+  const context = document.getElementById('context').value.trim();
+  const recipient = document.getElementById('recipient').value.trim();
+  const sender = document.getElementById('sender').value.trim();
+
+  errorMsg.style.display = 'none';
+  if(!subject || !context){
+    errorMsg.textContent = 'Please fill in the subject and what the email should say.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  const tone = toneById(selectedTone);
+  generateBtn.disabled = true;
+  generateBtn.textContent = 'Drafting…';
+  letterWrap.innerHTML = `<div class="loading-row"><div class="spinner"></div> Writing your ${tone.name.toLowerCase()} email…</div>`;
+
+  const systemPrompt = `You are an expert professional email writer. ${tone.instruction}
+Rules:
+- Output ONLY the email itself: greeting, body, sign-off. No preamble, no explanation, no markdown formatting, no quotation marks around it.
+- Use the subject and context given to write a complete, coherent email.
+- Keep it a reasonable length for a real workplace email (not overly long).
+- If a recipient name is given, address them by it. If not, use a generic professional greeting like "Hi," or "Dear Sir/Madam,".
+- If a sender name is given, sign off with it. If not, use a generic sign-off like "Best regards," without a name.`;
+
+  const userPrompt = `Subject: ${subject}
+Recipient: ${recipient || '(not specified)'}
+Sender: ${sender || '(not specified)'}
+Key points / context to include: ${context}`;
+
+  try {
+    const draft = await callClaude(systemPrompt, userPrompt, 1000);
+    renderLetter(letterWrap, draft, tone);
+  } catch(err){
+    letterWrap.innerHTML = `<div class="letter empty">Something went wrong generating the draft. Please try again.</div>`;
+    errorMsg.textContent = 'Error: ' + err.message;
+    errorMsg.style.display = 'block';
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Draft the email';
+  }
+}
+
+function renderLetter(wrapEl, text, tone){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  wrapEl.innerHTML = `
+    <div class="letter">${escapeHtml(text)}
+      <div class="postmark"><span>${tone.name.toUpperCase()}<br>${dateStr}</span></div>
+    </div>
+    <div class="letter-actions">
+      <button class="icon-btn copy-btn">Copy text</button>
+      <button class="icon-btn regen-btn">Regenerate</button>
+    </div>
+  `;
+  wrapEl.querySelector('.copy-btn').addEventListener('click', (e) => {
+    navigator.clipboard.writeText(text);
+    e.target.textContent = 'Copied ✓';
+    setTimeout(() => e.target.textContent = 'Copy text', 1500);
+  });
+  wrapEl.querySelector('.regen-btn').addEventListener('click', () => {
+    if(wrapEl === letterWrap) generateEmail(); else generateReply();
+  });
+}
+
+generateBtn.addEventListener('click', generateEmail);
+
+/* ---------- Analyze tab: identify tone + keywords ---------- */
+const analyzeBtn = document.getElementById('analyzeBtn');
+const analyzeError = document.getElementById('analyzeError');
+const analysisResult = document.getElementById('analysisResult');
+const replySection = document.getElementById('replySection');
+
+let lastAnalysis = null; // { toneId, keywords, summary }
+
+async function analyzeEmail(){
+  const incoming = document.getElementById('incomingEmail').value.trim();
+  analyzeError.style.display = 'none';
+  analysisResult.innerHTML = '';
+  replySection.style.display = 'none';
+
+  if(!incoming){
+    analyzeError.textContent = 'Paste the email you received first.';
+    analyzeError.style.display = 'block';
+    return;
+  }
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = 'Analyzing…';
+  analysisResult.innerHTML = `<div class="loading-row"><div class="spinner"></div> Reading the email…</div>`;
+
+  const toneIds = TONES.map(t => t.id).join(', ');
+  const systemPrompt = `You are an expert at reading professional emails. Given an email, identify:
+1. Which single tone from this fixed list best describes it: ${toneIds}. (formal=standard professional, polite=polite request, followup=checking back in, reminder=nudge before a deadline, strict=firm/no-nonsense, urgent=needs quick action, escalation=raised to higher authority, harsh=blunt/hard-hitting, complaint=raising a grievance, apology=owning a mistake). Pick the closest match even if imperfect.
+2. 4-8 short keywords or key phrases (2-4 words each) capturing what the email is actually about (topics, requests, deadlines, names of things involved).
+3. A 2-3 sentence plain-language summary of what the sender is saying and what they want.
+
+4. 3-5 short, concrete suggestions for how the reply should handle this email — specific things worth acknowledging, addressing, offering, or clarifying, based on the tone and the keywords. Each suggestion should be a single actionable sentence (e.g. "Acknowledge the missed deadline before explaining the delay", "Offer a specific new date instead of a vague timeline", "Thank them for flagging this directly").
+
+Respond with ONLY raw JSON, no markdown fences, no preamble, in this exact shape:
+{"tone_id": "one of the ids above", "keywords": ["...", "..."], "summary": "...", "suggestions": ["...", "..."]}`;
+
+  try {
+    const raw = await callClaude(systemPrompt, incoming, 700);
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    const tone = toneById(parsed.tone_id);
+    lastAnalysis = { toneId: tone.id, keywords: parsed.keywords || [], summary: parsed.summary || '', suggestions: parsed.suggestions || [], original: incoming };
+    renderAnalysis(tone, lastAnalysis.keywords, lastAnalysis.summary, lastAnalysis.suggestions);
+    rebuildReplyToneList(tone.id);
+    replySection.style.display = 'block';
+  } catch(err){
+    analysisResult.innerHTML = '';
+    analyzeError.textContent = 'Could not analyze that email. Please try again.';
+    analyzeError.style.display = 'block';
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = 'Identify tone & analyze';
+  }
+}
+
+function renderAnalysis(tone, keywords, summary, suggestions){
+  const chips = keywords.map(k => `<span class="chip">${escapeHtml(k)}</span>`).join('');
+  const suggestionRows = (suggestions || []).map((s, i) => `
+    <li class="suggestion-item" data-text="${escapeHtml(s)}">
+      <span class="suggestion-text">${escapeHtml(s)}</span>
+      <button class="add-suggestion-btn" data-idx="${i}">+ Add to reply</button>
+    </li>`).join('');
+  analysisResult.innerHTML = `
+    <div class="analysis-card">
+      <div class="analysis-row">
+        <div class="analysis-label">Detected tone</div>
+        <span class="tone-badge"><span class="dot" style="background:${tone.color}"></span>${tone.name}</span>
+      </div>
+      <div class="analysis-row">
+        <div class="analysis-label">Keywords</div>
+        <div class="keyword-chips">${chips || '<span class="summary-text">None found.</span>'}</div>
+      </div>
+      <div class="analysis-row">
+        <div class="analysis-label">What they're saying</div>
+        <div class="summary-text">${escapeHtml(summary)}</div>
+      </div>
+      ${suggestions && suggestions.length ? `
+      <div class="analysis-row">
+        <div class="analysis-label">Suggestions for your reply</div>
+        <ul class="suggestion-list">${suggestionRows}</ul>
+      </div>` : ''}
+    </div>
+  `;
+  analysisResult.querySelectorAll('.add-suggestion-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const li = btn.closest('.suggestion-item');
+      const text = li.dataset.text;
+      const notesEl = document.getElementById('replyNotes');
+      notesEl.value = notesEl.value.trim() ? notesEl.value.trim() + '\n- ' + text : '- ' + text;
+      btn.textContent = 'Added ✓';
+      btn.disabled = true;
+    });
+  });
+}
+
+analyzeBtn.addEventListener('click', analyzeEmail);
+
+/* ---------- Analyze tab: draft reply ---------- */
+const replyBtn = document.getElementById('replyBtn');
+const replyError = document.getElementById('replyError');
+const replyLetterWrap = document.getElementById('replyLetterWrap');
+
+async function generateReply(){
+  if(!lastAnalysis){ return; }
+  const recipient = document.getElementById('replyRecipient').value.trim();
+  const sender = document.getElementById('replySender').value.trim();
+  const notes = document.getElementById('replyNotes').value.trim();
+
+  replyError.style.display = 'none';
+  const replyTone = toneById(selectedReplyTone);
+
+  replyBtn.disabled = true;
+  replyBtn.textContent = 'Drafting…';
+  replyLetterWrap.innerHTML = `<div class="loading-row"><div class="spinner"></div> Writing your ${replyTone.name.toLowerCase()} reply…</div>`;
+
+  const systemPrompt = `You are an expert professional email writer, replying to an email someone received. ${replyTone.instruction}
+Rules:
+- Output ONLY the reply email itself: greeting, body, sign-off. No preamble, no explanation, no markdown, no quotation marks.
+- This is a REPLY, so directly address the points raised in the original email using the keywords and summary given.
+- Keep it a reasonable length for a real workplace email.
+- If a recipient name is given, address them by it, otherwise use a generic greeting.
+- If a sender name is given, sign off with it, otherwise use a generic sign-off with no name.`;
+
+  const userPrompt = `Original email received:
+"""
+${lastAnalysis.original}
+"""
+
+Detected tone of original email: ${toneById(lastAnalysis.toneId).name}
+Keywords from original email: ${lastAnalysis.keywords.join(', ')}
+Summary of what sender wants: ${lastAnalysis.summary}
+Suggested angles for the reply: ${(lastAnalysis.suggestions || []).join('; ') || '(none)'}
+
+Recipient of reply: ${recipient || '(not specified)'}
+Sender (you) of reply: ${sender || '(not specified)'}
+Additional points to include in the reply: ${notes || '(none specified, just respond appropriately)'}`;
+
+  try {
+    const draft = await callClaude(systemPrompt, userPrompt, 1000);
+    renderLetter(replyLetterWrap, draft, replyTone);
+  } catch(err){
+    replyLetterWrap.innerHTML = `<div class="letter empty">Something went wrong generating the reply. Please try again.</div>`;
+    replyError.textContent = 'Error: ' + err.message;
+    replyError.style.display = 'block';
+  } finally {
+    replyBtn.disabled = false;
+    replyBtn.textContent = 'Draft the reply';
+  }
+}
+
+replyBtn.addEventListener('click', generateReply);
+</script>
+</body>
+</html>
